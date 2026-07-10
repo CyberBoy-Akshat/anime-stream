@@ -1,13 +1,36 @@
-export default async function handler(req, res) {
-    const id = req.query.id;
-    if (!id) return res.status(400).json({ error: "Missing query 'id'" });
+export const config = {
+  runtime: 'edge',
+};
+
+export default async function handler(req) {
+  const url = new URL(req.url);
+  const id = url.searchParams.get('id');
+  
+  if (!id) {
+    return new Response(JSON.stringify({ error: "Missing query 'id'" }), { 
+      status: 400,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+  
+  try {
+    const response = await fetch(`https://api.consumet.tv/stream/anime/gogoanime/info/${encodeURIComponent(id)}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    });
     
-    try {
-        const response = await fetch(`https://api.consumet.tv/stream/anime/gogoanime/info/${id}`);
-        if (!response.ok) throw new Error("External API failed");
-        const data = await response.json();
-        res.status(200).json(data);
-    } catch (error) {
-        res.status(500).json({ error: "Failed to get anime info" });
-    }
+    const data = await response.json();
+    
+    return new Response(JSON.stringify(data), { 
+      status: 200,
+      headers: { 
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: "Failed to get anime info" }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
 }
